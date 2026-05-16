@@ -229,6 +229,15 @@ describe('Contacts API', () => {
     expect(res.body).toHaveProperty('error');
   });
 
+  it('POST /api/contacts/:id/action-items with non-existent contact id returns 404', async () => {
+    const res = await request(app)
+      .post('/api/contacts/99999/action-items')
+      .send({ description: 'Request records', assigned_to: 'Paralegal' })
+      .expect(404);
+
+    expect(res.body).toHaveProperty('error');
+  });
+
   // ── PUT /api/contact-action-items/:id ────────────────────────────────────────
 
   it('PUT /api/contact-action-items/:id with completed=true sets completed_at', async () => {
@@ -267,6 +276,15 @@ describe('Contacts API', () => {
 
     expect(res.body.completed).toBe(0);
     expect(res.body.completed_at).toBeNull();
+  });
+
+  it('PUT /api/contact-action-items/:id with non-existent id returns 404', async () => {
+    const res = await request(app)
+      .put('/api/contact-action-items/99999')
+      .send({ completed: true })
+      .expect(404);
+
+    expect(res.body).toHaveProperty('error');
   });
 
   // ── GET /api/contact-schedule ─────────────────────────────────────────────────
@@ -338,5 +356,35 @@ describe('Contacts API', () => {
     // The 10-day row should not appear
     const tenDayRow = res.body.find((r: any) => r.due_date === tenDaysOut);
     expect(tenDayRow).toBeUndefined();
+  });
+
+  it('GET /api/contact-schedule?due_this_month=true returns rows within 30 days', async () => {
+    const caseId = await createCase();
+    const today = new Date().toISOString().slice(0, 10);
+
+    // Date 15 days from now — should appear
+    const d15 = new Date();
+    d15.setDate(d15.getDate() + 15);
+    const fifteenDaysOut = d15.toISOString().slice(0, 10);
+
+    // Date 45 days from now — should NOT appear
+    const d45 = new Date();
+    d45.setDate(d45.getDate() + 45);
+    const fortyFiveDaysOut = d45.toISOString().slice(0, 10);
+
+    insertSchedule(caseId, fifteenDaysOut);
+    insertSchedule(caseId, fortyFiveDaysOut);
+
+    const res = await request(app).get('/api/contact-schedule?due_this_month=true').expect(200);
+    expect(res.body.length).toBeGreaterThanOrEqual(1);
+
+    // The 15-day row should appear
+    const fifteenDayRow = res.body.find((r: any) => r.due_date === fifteenDaysOut);
+    expect(fifteenDayRow).toBeDefined();
+    expect(fifteenDayRow.due_date >= today).toBe(true);
+
+    // The 45-day row should NOT appear
+    const fortyFiveDayRow = res.body.find((r: any) => r.due_date === fortyFiveDaysOut);
+    expect(fortyFiveDayRow).toBeUndefined();
   });
 });
