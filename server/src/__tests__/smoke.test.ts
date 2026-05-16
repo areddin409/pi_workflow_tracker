@@ -7,15 +7,14 @@ describe('buildApp smoke test', () => {
     const db = createTestDb();
     const app = buildApp(db);
 
-    // Implemented routes — return 200
+    // All routes implemented — return 200
     await request(app).get('/api/cases').expect(200);
     await request(app).get('/api/tasks').expect(200);
     await request(app).get('/api/templates').expect(200);
     await request(app).get('/api/contacts').expect(200);
     await request(app).get('/api/contact-schedule').expect(200);
-    // Remaining routes are stubs — returns 501, not 404
-    await request(app).get('/api/dashboard').expect(501);
-    await request(app).get('/api/settings').expect(501);
+    await request(app).get('/api/dashboard').expect(200);
+    await request(app).get('/api/settings').expect(200);
 
     db.close();
   });
