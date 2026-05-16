@@ -13,7 +13,7 @@ describe('seedDatabase', () => {
     db.exec(readFileSync(join(__dirname, '../schema.sql'), 'utf-8'));
   });
 
-  afterEach(() => db.close());
+  afterEach(() => { db.close(); });
 
   it('seeds 22 task templates', () => {
     seedDatabase(db);

@@ -11,7 +11,7 @@ describe('Database Schema', () => {
     db.exec(readFileSync(join(__dirname, '../schema.sql'), 'utf-8'));
   });
 
-  afterEach(() => db.close());
+  afterEach(() => { db.close(); });
 
   it('creates all 7 tables', () => {
     const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as { name: string }[];
