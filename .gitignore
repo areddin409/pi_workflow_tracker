@@ -2,3 +2,5 @@ node_modules/
 dist/
 *.db
 .env
+.superpowers/
+settings.local.json
