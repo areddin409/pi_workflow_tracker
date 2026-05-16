@@ -80,8 +80,8 @@ export default function Dashboard() {
                     <p className="text-sm font-medium text-gray-900">{task.client_name}</p>
                     <p className="text-xs text-gray-500 mt-0.5">{task.title}</p>
                   </div>
-                  <span className="shrink-0 text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-                    {PHASE_LABELS[task.phase] ?? task.phase}
+                  <span className="shrink-0 text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+                    {task.due_date ? `${daysOverdue(task.due_date)}d overdue` : 'overdue'}
                   </span>
                 </li>
               ))
