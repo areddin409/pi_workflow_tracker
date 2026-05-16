@@ -6,14 +6,6 @@ import type { ContactSchedule } from '../types';
 
 type ScheduleFilter = 'due_today' | 'due_this_week' | 'due_this_month';
 
-const PHASE_LABELS: Record<string, string> = {
-  file_setup: 'File Setup',
-  treating: 'Treating',
-  demand_drafting: 'Demand Draft',
-  demand_sent: 'Demand Sent',
-  negotiations: 'Negotiations',
-};
-
 const SENTIMENT_COLORS: Record<string, string> = {
   negative: 'bg-red-100 text-red-700',
   neutral: 'bg-yellow-100 text-yellow-700',
@@ -30,20 +22,26 @@ function daysOverdue(dueDate: string): number {
   return Math.floor((Date.now() - new Date(dueDate).getTime()) / 86400000);
 }
 
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString();
+}
+
 export default function Dashboard() {
   const { data, loading } = useDashboard();
   const [scheduleFilter, setScheduleFilter] = useState<ScheduleFilter>('due_today');
-  const { data: scheduleData } = useContactSchedule({ [scheduleFilter]: true });
+  const { data: scheduleData, error: scheduleError } = useContactSchedule({ [scheduleFilter]: true });
 
   if (loading) return <div className="p-6 text-gray-500">Loading...</div>;
   if (!data) return <div className="p-6 text-red-500">Failed to load dashboard.</div>;
+
+  const scheduleItems = scheduleData ?? [];
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
 
       {/* Stats row */}
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <StatCard
           label="Overdue Tasks"
           value={data.overdueTasks}
@@ -110,10 +108,12 @@ export default function Dashboard() {
             </div>
           </div>
           <ul className="divide-y divide-gray-100">
-            {(scheduleData ?? []).length === 0 ? (
+            {scheduleError ? (
+              <li className="px-5 py-4 text-sm text-red-500">Failed to load contact schedule</li>
+            ) : scheduleItems.length === 0 ? (
               <li className="px-5 py-4 text-sm text-gray-400">No contacts scheduled</li>
             ) : (
-              (scheduleData ?? []).map((cs: ContactSchedule) => {
+              scheduleItems.map((cs: ContactSchedule) => {
                 const overdueDays = daysOverdue(cs.due_date);
                 return (
                   <li key={cs.id} className="px-5 py-3 flex items-center justify-between gap-3">
@@ -128,7 +128,7 @@ export default function Dashboard() {
                         {overdueDays}d overdue
                       </span>
                     ) : (
-                      <span className="shrink-0 text-xs text-gray-400">{cs.due_date}</span>
+                      <span className="shrink-0 text-xs text-gray-400">{formatDate(cs.due_date)}</span>
                     )}
                   </li>
                 );
@@ -147,8 +147,8 @@ export default function Dashboard() {
           {data.todaysFocus.length === 0 ? (
             <li className="px-5 py-4 text-sm text-gray-400">Nothing urgent today</li>
           ) : (
-            data.todaysFocus.map((item, i) => (
-              <li key={`${item.type}-${item.id}-${i}`} className="px-5 py-3 flex items-center gap-3">
+            data.todaysFocus.map(item => (
+              <li key={`${item.type}-${item.id}`} className="px-5 py-3 flex items-center gap-3">
                 <span
                   className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${
                     item.urgency === 1 ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
@@ -157,7 +157,7 @@ export default function Dashboard() {
                   {item.urgency === 1 ? 'Urgent' : 'Today'}
                 </span>
                 <span className="shrink-0 text-xs text-gray-400 capitalize">
-                  {item.type.replace('_', ' ')}
+                  {item.type.replace(/_/g, ' ')}
                 </span>
                 <span className="text-sm font-medium text-gray-900">{item.client_name}</span>
                 <span className="text-sm text-gray-600 truncate">— {item.label}</span>
@@ -197,7 +197,7 @@ export default function Dashboard() {
                     </span>
                   </td>
                   <td className="px-5 py-3 text-sm text-gray-500">
-                    {client.next_contact_due ?? 'None scheduled'}
+                    {client.next_contact_due ? formatDate(client.next_contact_due) : 'None scheduled'}
                   </td>
                 </tr>
               ))}
