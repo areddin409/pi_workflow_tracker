@@ -131,9 +131,6 @@ export default function Communication() {
 
   const inputClass = "w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
 
-  // Suppress unused variable warning — labels are defined for potential future use
-  void FOLLOW_UP_LABELS;
-
   return (
     <div className="flex h-[calc(100vh-4rem)] bg-white border border-gray-200 rounded-lg overflow-hidden">
 
@@ -290,11 +287,9 @@ export default function Communication() {
                     <select value={form.follow_up_type}
                       onChange={e => setForm(f => ({ ...f, follow_up_type: e.target.value as FollowUpType }))}
                       className={inputClass}>
-                      <option value="none_needed">None Needed</option>
-                      <option value="cm_follow_up">CM Follow Up Needed</option>
-                      <option value="attorney_review">Attorney Review Needed</option>
-                      <option value="attorney_contact">Attorney Contact Needed</option>
-                      <option value="urgent_escalation">Urgent Escalation</option>
+                      {(Object.entries(FOLLOW_UP_LABELS) as [FollowUpType, string][]).map(
+                        ([value, label]) => <option key={value} value={value}>{label}</option>
+                      )}
                     </select>
                   )}
                 </div>
@@ -347,13 +342,15 @@ function ContactHistory({ caseId }: { caseId: number }) {
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
 
   useEffect(() => {
-    api.contacts.list({ case_id: String(caseId) }).then((data) => {
-      const hubContacts = (data as unknown as HubContact[])
-        .filter((c) => c.contact_attempt_type != null)
-        .sort((a, b) => new Date(b.contacted_at).getTime() - new Date(a.contacted_at).getTime());
-      setContacts(hubContacts);
-      setLoading(false);
-    });
+    api.contacts.list({ case_id: String(caseId) })
+      .then((data) => {
+        const hubContacts = (data as unknown as HubContact[])
+          .filter((c) => c.contact_attempt_type != null)
+          .sort((a, b) => new Date(b.contacted_at).getTime() - new Date(a.contacted_at).getTime());
+        setContacts(hubContacts);
+      })
+      .catch(() => { /* silently hide history on error */ })
+      .finally(() => setLoading(false));
   }, [caseId]);
 
   const toggle = (id: number) => setExpanded(prev => {
@@ -380,8 +377,8 @@ function ContactHistory({ caseId }: { caseId: number }) {
             <button onClick={() => toggle(c.id)} className="w-full text-left flex items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm font-medium text-gray-900">{new Date(c.contacted_at + 'T00:00:00').toLocaleDateString()}</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 capitalize">{c.contact_attempt_type?.replace('_', ' ')}</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 capitalize">{c.contact_status?.replace('_', ' ')}</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 capitalize">{c.contact_attempt_type?.replace(/_/g, ' ')}</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 capitalize">{c.contact_status?.replace(/_/g, ' ')}</span>
               </div>
               <span className="text-xs text-gray-400">{expanded.has(c.id) ? '▲' : '▼'}</span>
             </button>
