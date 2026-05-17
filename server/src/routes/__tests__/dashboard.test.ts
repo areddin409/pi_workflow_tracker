@@ -150,6 +150,43 @@ describe('Dashboard + Settings API', () => {
     expect(match.sentiment).toBe('negative');
   });
 
+  it('GET /api/dashboard includes openTasksByPhase with tasks per phase', async () => {
+    const caseId = insertCase({ current_phase: 'file_setup' });
+    insertTask(caseId, { status: 'pending' });
+
+    const res = await request(app).get('/api/dashboard').expect(200);
+    expect(res.body).toHaveProperty('openTasksByPhase');
+    expect(res.body.openTasksByPhase).toHaveProperty('file_setup');
+    expect(res.body.openTasksByPhase.file_setup.count).toBeGreaterThan(0);
+    expect(Array.isArray(res.body.openTasksByPhase.file_setup.tasks)).toBe(true);
+    expect(res.body.openTasksByPhase.file_setup.tasks[0]).toHaveProperty('client_name');
+    expect(res.body.openTasksByPhase.file_setup.tasks[0]).toHaveProperty('title');
+  });
+
+  it('GET /api/dashboard includes casesByPhase with cases per phase', async () => {
+    insertCase({ current_phase: 'file_setup', client_name: 'Setup Client' });
+
+    const res = await request(app).get('/api/dashboard').expect(200);
+    expect(res.body).toHaveProperty('casesByPhase');
+    expect(res.body.casesByPhase).toHaveProperty('file_setup');
+    expect(res.body.casesByPhase.file_setup.count).toBeGreaterThan(0);
+    const names = res.body.casesByPhase.file_setup.cases.map((c: any) => c.client_name);
+    expect(names).toContain('Setup Client');
+  });
+
+  it('GET /api/dashboard includes contactsNeedingContact with overdue cases', async () => {
+    const caseId = insertCase({ client_name: 'Overdue Client' });
+    // Insert a contact_schedule row with a past due_date so it shows as overdue
+    db.prepare(
+      "INSERT INTO contact_schedule (case_id, schedule_type, due_date) VALUES (?, 'check_in', '2026-01-02')"
+    ).run(caseId);
+
+    const res = await request(app).get('/api/dashboard').expect(200);
+    expect(res.body).toHaveProperty('contactsNeedingContact');
+    const names = res.body.contactsNeedingContact.map((c: any) => c.client_name);
+    expect(names).toContain('Overdue Client');
+  });
+
   // ── GET /api/settings ──────────────────────────────────────────────────────
 
   it('GET /api/settings returns all 5 phase settings rows', async () => {

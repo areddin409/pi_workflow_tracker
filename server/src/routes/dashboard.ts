@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import Database from 'better-sqlite3';
-import { getOverdueTasks, getDueTodayTasks, getAtRiskCases } from '../services/overdue';
+import { getOverdueTasks, getDueTodayTasks, getAtRiskCases, getOverdueContacts } from '../services/overdue';
 import { calculateContactRate } from '../services/contact-schedule';
 
 export function dashboardRouter(db: Database.Database): Router {
@@ -88,6 +88,33 @@ export function dashboardRouter(db: Database.Database): Router {
 
     focusItems.sort((a, b) => a.urgency - b.urgency);
 
+    const phases = ['file_setup', 'treating', 'demand_drafting', 'demand_sent', 'negotiations'] as const;
+
+    const openTasksByPhase: Record<string, { count: number; tasks: Array<{ client_name: string; title: string }> }> = {};
+    for (const phase of phases) {
+      const tasks = db.prepare(`
+        SELECT t.title, c.client_name
+        FROM tasks t
+        JOIN cases c ON t.case_id = c.id
+        WHERE t.phase = ? AND t.status != 'completed' AND c.current_phase != 'closed'
+        ORDER BY c.client_name, t.title
+      `).all(phase) as Array<{ title: string; client_name: string }>;
+      openTasksByPhase[phase] = { count: tasks.length, tasks };
+    }
+
+    const casesByPhase: Record<string, { count: number; cases: Array<{ case_id: number; client_name: string; attorney: string }> }> = {};
+    for (const phase of phases) {
+      const phaseCases = db.prepare(`
+        SELECT id as case_id, client_name, attorney
+        FROM cases
+        WHERE current_phase = ?
+        ORDER BY client_name
+      `).all(phase) as Array<{ case_id: number; client_name: string; attorney: string }>;
+      casesByPhase[phase] = { count: phaseCases.length, cases: phaseCases };
+    }
+
+    const contactsNeedingContact = getOverdueContacts(db, today);
+
     res.json({
       overdueTasks,
       dueToday,
@@ -97,7 +124,10 @@ export function dashboardRouter(db: Database.Database): Router {
       overdueTasksList,
       contactScheduleList,
       todaysFocus: focusItems,
-      atRiskClients
+      atRiskClients,
+      openTasksByPhase,
+      casesByPhase,
+      contactsNeedingContact,
     });
   });
 
