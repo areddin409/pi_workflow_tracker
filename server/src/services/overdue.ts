@@ -63,11 +63,30 @@ export function getAtRiskCases(
     ) latest_schedule ON latest_schedule.case_id = c.id
     WHERE c.current_phase != 'closed'
       AND (
-        latest_contact.client_sentiment = 'negative'
+        latest_contact.client_sentiment IN ('negative', 'at_risk')
         OR (latest_contact.client_sentiment = 'neutral' AND latest_schedule.due_date < ?)
       )
     GROUP BY c.id
   `
     )
     .all(today);
+}
+
+export function getOverdueContacts(
+  db: Database.Database,
+  today = new Date().toISOString().slice(0, 10)
+): Array<{ case_id: number; client_name: string; next_contact_due: string | null; days_overdue: number }> {
+  return db.prepare(`
+    SELECT
+      c.id as case_id,
+      c.client_name,
+      cs.due_date as next_contact_due,
+      CAST(julianday(?) - julianday(cs.due_date) AS INTEGER) as days_overdue
+    FROM contact_schedule cs
+    JOIN cases c ON cs.case_id = c.id
+    WHERE cs.completed_contact_id IS NULL
+      AND cs.due_date < ?
+      AND c.current_phase != 'closed'
+    ORDER BY cs.due_date ASC
+  `).all(today, today) as any[];
 }
