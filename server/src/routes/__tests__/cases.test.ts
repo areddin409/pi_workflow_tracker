@@ -172,4 +172,28 @@ describe('Cases API', () => {
     const res = await request(app).delete('/api/cases/99999').expect(404);
     expect(res.body).toHaveProperty('error');
   });
+
+  // ── latest_sentiment on GET /api/cases ─────────────────────────
+
+  it('GET /api/cases includes latest_sentiment from most recent contact', async () => {
+    const created = (await createCase({ client_name: 'Sentiment Test' }).expect(201)).body;
+    const caseId = created.id;
+    db.prepare(
+      "INSERT INTO contacts (case_id, contacted_at, contact_type, contact_status, client_sentiment, follow_up_necessary, created_at) VALUES (?, '2026-03-01', 'phone', 'answered', 'at_risk', 0, datetime('now'))"
+    ).run(caseId);
+
+    const res = await request(app).get('/api/cases').expect(200);
+    const found = res.body.find((c: any) => c.id === caseId);
+    expect(found).toBeDefined();
+    expect(found.latest_sentiment).toBe('at_risk');
+  });
+
+  it('GET /api/cases latest_sentiment is null when no contacts', async () => {
+    const created = (await createCase({ client_name: 'No Contact' }).expect(201)).body;
+    const caseId = created.id;
+    const res = await request(app).get('/api/cases').expect(200);
+    const found = res.body.find((c: any) => c.id === caseId);
+    expect(found).toBeDefined();
+    expect(found.latest_sentiment).toBeNull();
+  });
 });

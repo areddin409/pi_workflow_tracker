@@ -11,10 +11,16 @@ export function casesRouter(db: Database.Database): Router {
     const cases = db.prepare(`
       SELECT c.*,
         ps.case_badge_priority,
-        CAST(julianday('now') - julianday(cph.entered_at) AS INTEGER) as days_in_phase
+        CAST(julianday('now') - julianday(cph.entered_at) AS INTEGER) as days_in_phase,
+        latest_contact.client_sentiment as latest_sentiment
       FROM cases c
       LEFT JOIN phase_settings ps ON c.current_phase = ps.phase
       JOIN case_phase_history cph ON cph.case_id = c.id AND cph.exited_at IS NULL
+      LEFT JOIN (
+        SELECT case_id, client_sentiment
+        FROM contacts
+        WHERE id IN (SELECT MAX(id) FROM contacts GROUP BY case_id)
+      ) latest_contact ON latest_contact.case_id = c.id
       ${includesClosed ? '' : "WHERE c.current_phase != 'closed'"}
       ORDER BY c.created_at DESC
     `).all();
