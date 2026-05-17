@@ -7,6 +7,26 @@ export type ContactStatus = 'answered' | 'voicemail' | 'no_answer';
 export type Sentiment = 'positive' | 'neutral' | 'negative';
 export type ScheduleType = 'initial_intro' | 'treating_checkin' | 'monthly_followup';
 export type AssignedTo = 'case_manager' | 'attorney' | 'client' | 'provider' | 'adjuster';
+export type ContactAttemptType = 'attempted' | 'not_attempted' | 'completed';
+export type FollowUpType = 'none_needed' | 'cm_follow_up' | 'attorney_review' | 'attorney_contact' | 'urgent_escalation';
+
+export interface CommunicationSummary {
+  case_id: number;
+  client_name: string;
+  attorney: string;
+  current_phase: Phase;
+  date_assigned: string;
+  initial_contact_date: string | null;
+  last_contact_date: string | null;
+  last_attempted: string | null;
+  next_contact_due: string | null;
+  contact_attempt_type: ContactAttemptType | null;
+  contact_status: ContactStatus | null;
+  client_sentiment: Sentiment | 'at_risk' | null;
+  follow_up_type: FollowUpType | null;
+  action_item: string | null;
+  is_overdue: boolean;
+}
 
 export interface Case {
   id: number;
@@ -17,6 +37,7 @@ export interface Case {
   created_at: string;
   days_in_phase?: number;
   case_badge_priority?: Priority;
+  latest_sentiment?: Sentiment | 'at_risk' | null;
 }
 
 export interface CaseDetail extends Case {
@@ -125,4 +146,7 @@ export interface DashboardStats {
   contactScheduleList: ContactSchedule[];
   todaysFocus: FocusItem[];
   atRiskClients: Array<{ case_id: number; client_name: string; sentiment: Sentiment; next_contact_due: string | null }>;
+  contactsNeedingContact: Array<{ case_id: number; client_name: string; next_contact_due: string | null; days_overdue: number }>;
+  openTasksByPhase: Record<string, { count: number; tasks: Array<{ client_name: string; title: string }> }>;
+  casesByPhase: Record<string, { count: number; cases: Array<{ case_id: number; client_name: string; attorney: string }> }>;
 }

@@ -7,6 +7,8 @@ export type ContactStatus = 'answered' | 'voicemail' | 'no_answer';
 export type Sentiment = 'positive' | 'neutral' | 'negative';
 export type ScheduleType = 'initial_intro' | 'treating_checkin' | 'monthly_followup';
 export type AssignedTo = 'case_manager' | 'attorney' | 'client' | 'provider' | 'adjuster';
+export type ContactAttemptType = 'attempted' | 'not_attempted' | 'completed';
+export type FollowUpType = 'none_needed' | 'cm_follow_up' | 'attorney_review' | 'attorney_contact' | 'urgent_escalation';
 
 export interface Case {
   id: number;
@@ -65,6 +67,8 @@ export interface Contact {
   follow_up_necessary: boolean;
   notes: string | null;
   action_item: string | null;
+  contact_attempt_type?: ContactAttemptType | null;
+  follow_up_type?: FollowUpType | null;
   created_at: string;
 }
 

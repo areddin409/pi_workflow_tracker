@@ -84,3 +84,10 @@ CREATE TABLE IF NOT EXISTS phase_settings (
   auto_due_offset_days   INTEGER,
   overdue_threshold_days INTEGER
 );
+
+-- Migration: communication hub columns (applied via runMigrations in database.ts)
+-- ALTER TABLE contacts ADD COLUMN contact_attempt_type TEXT;
+--   values: 'attempted' | 'not_attempted' | 'completed'
+-- ALTER TABLE contacts ADD COLUMN follow_up_type TEXT;
+--   values: 'none_needed' | 'cm_follow_up' | 'attorney_review' | 'attorney_contact' | 'urgent_escalation'
+-- client_sentiment now also accepts 'at_risk' (enforced at app layer only)
