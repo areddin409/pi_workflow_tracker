@@ -197,8 +197,8 @@ export default function Dashboard() {
                     {PHASE_LABELS[activePhase as Phase]}
                   </div>
                   <ul className="space-y-1.5">
-                    {data.openTasksByPhase[activePhase].tasks.map((t, idx) => (
-                      <li key={idx} className="flex items-center justify-between text-sm border-b border-gray-100 pb-1">
+                    {data.openTasksByPhase[activePhase].tasks.map((t) => (
+                      <li key={`${t.client_name}-${t.title}`} className="flex items-center justify-between text-sm border-b border-gray-100 pb-1">
                         <span className="font-medium text-gray-900">{t.client_name}</span>
                         <span className="text-gray-500 truncate ml-3">— {t.title}</span>
                       </li>
