@@ -140,9 +140,9 @@ export default function CaseDetail() {
     const newStatus: TaskStatus = task.status === 'completed' ? 'pending' : 'completed';
     try {
       await api.tasks.update(task.id, { status: newStatus });
-      fetchCase();
+      await fetchCase();
     } catch {
-      // silently ignore — user can retry
+      // silent — task update failure is rare and non-blocking
     }
   };
 
@@ -162,7 +162,7 @@ export default function CaseDetail() {
       });
       setShowAddTask(false);
       setAddTaskForm(defaultAddTaskForm());
-      fetchCase();
+      await fetchCase();
     } catch (err) {
       setAddTaskError(err instanceof Error ? err.message : 'Failed to create task');
     } finally {
@@ -196,16 +196,6 @@ export default function CaseDetail() {
 
   const { tasks, latestContact, phaseHistory, openSchedules } = caseDetail;
   const nextSchedule = openSchedules[0] ?? null;
-
-  // Sort contacts newest-first for the contact log
-  const allContacts: Contact[] = [...(caseDetail.tasks.length >= 0 ? [] : [])]; // placeholder; contacts come from the API below
-  // Note: CaseDetail only returns latestContact. For the full contact log we rely on the contacts embedded via latestContact.
-  // Actually the spec says the contact log lists "all contacts" — but the API only returns latestContact in CaseDetail.
-  // We'll build the log from what the API gives us and note this in output.
-  // After checking the server route, the list is available via api.contacts.list({ case_id: ... })
-  // We'll keep a separate state for contacts list.
-  // (see contactsLog state below)
-  void allContacts; // suppress unused warning
 
   return (
     <div className="space-y-6">
@@ -555,18 +545,26 @@ function ContactLogTab({ caseId, expandedContacts, onToggleExpand }: ContactLogT
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
     api.contacts
       .list({ case_id: String(caseId) })
       .then(data => {
-        // sort newest first
+        if (cancelled) return;
         const sorted = [...data].sort(
           (a, b) => new Date(b.contacted_at).getTime() - new Date(a.contacted_at).getTime()
         );
         setContacts(sorted);
       })
-      .catch(err => setError(err instanceof Error ? err.message : 'Failed to load contacts'))
-      .finally(() => setLoading(false));
+      .catch(err => {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : 'Failed to load contacts');
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setLoading(false);
+      });
+    return () => { cancelled = true; };
   }, [caseId]);
 
   if (loading) return <div className="px-5 py-4 text-sm text-gray-500">Loading contacts…</div>;
