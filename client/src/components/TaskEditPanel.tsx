@@ -50,8 +50,9 @@ export default function TaskEditPanel({ task, onClose, onSaved }: Props) {
       onSaved();
       onClose();
     } catch (err) {
-      setSaving(false);
       setError(err instanceof Error ? err.message : 'Failed to save task');
+    } finally {
+      setSaving(false);
     }
   };
 

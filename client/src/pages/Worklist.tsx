@@ -6,14 +6,13 @@ import type { Task, Priority, TaskStatus, WaitingOn } from '../types';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const TODAY = new Date().toISOString().slice(0, 10);
-
 function daysOpen(createdAt: string): number {
   return Math.floor((Date.now() - new Date(createdAt).getTime()) / 86400000);
 }
 
 function isOverdue(task: Task): boolean {
-  return !!task.due_date && task.due_date < TODAY && task.status !== 'completed';
+  const today = new Date().toISOString().slice(0, 10);
+  return !!task.due_date && task.due_date < today && task.status !== 'completed';
 }
 
 function formatDate(dateStr: string | null): string {
@@ -113,8 +112,9 @@ export default function Worklist() {
       setShowAddForm(false);
       refetch();
     } catch (err) {
-      setAddSaving(false);
       setAddError(err instanceof Error ? err.message : 'Failed to create task');
+    } finally {
+      setAddSaving(false);
     }
   };
 
@@ -382,12 +382,10 @@ export default function Worklist() {
       {/* Edit Panel */}
       {selectedTask && (
         <TaskEditPanel
+          key={selectedTask.id}
           task={selectedTask}
           onClose={() => setSelectedTask(null)}
-          onSaved={() => {
-            setSelectedTask(null);
-            refetch();
-          }}
+          onSaved={refetch}
         />
       )}
     </div>
