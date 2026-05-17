@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { api } from '../lib/api';
 import type { PhaseSettings, Phase, Priority } from '../types';
 
@@ -48,10 +48,19 @@ export default function Settings() {
       .finally(() => setLoading(false));
   }, []);
 
-  const hasChanges = useCallback(() => {
+  const hasChanges = useMemo(() => {
     if (!original || !local) return false;
-    return local.some((row, i) => !settingsEqual(row, original[i]));
+    return local.some(row => {
+      const orig = original.find(o => o.phase === row.phase);
+      return orig ? !settingsEqual(row, orig) : false;
+    });
   }, [original, local]);
+
+  useEffect(() => {
+    if (!successMsg) return;
+    const id = setTimeout(() => setSuccessMsg(null), 3000);
+    return () => clearTimeout(id);
+  }, [successMsg]);
 
   function updateRow(phase: Phase, field: keyof Omit<PhaseSettings, 'phase'>, value: string) {
     setLocal(prev =>
@@ -73,7 +82,11 @@ export default function Settings() {
     setSaveError(null);
     setSuccessMsg(null);
 
-    const changed = local.filter((row, i) => !settingsEqual(row, original[i]));
+    const origMap = Object.fromEntries((original ?? []).map(r => [r.phase, r]));
+    const changed = local.filter(row => {
+      const orig = origMap[row.phase];
+      return orig ? !settingsEqual(row, orig) : false;
+    });
 
     try {
       await Promise.all(
@@ -90,7 +103,6 @@ export default function Settings() {
       setOriginal(updated);
       setLocal(updated.map(row => ({ ...row })));
       setSuccessMsg('Settings saved successfully.');
-      setTimeout(() => setSuccessMsg(null), 3000);
     } catch {
       setSaveError('Failed to save settings. Please try again.');
     } finally {
@@ -102,7 +114,7 @@ export default function Settings() {
   if (error) return <div className="p-6 text-red-500">{error}</div>;
   if (!local) return null;
 
-  const changed = hasChanges();
+  const changed = hasChanges;
 
   return (
     <div className="space-y-6">
