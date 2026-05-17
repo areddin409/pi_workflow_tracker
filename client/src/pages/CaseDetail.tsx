@@ -55,8 +55,10 @@ const CONTACT_STATUS_LABELS: Record<string, string> = {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString();
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return '—';
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString();
 }
 
 function isOverdue(dueDateStr: string): boolean {
@@ -110,6 +112,9 @@ export default function CaseDetail() {
   // Log contact modal
   const [showLogContact, setShowLogContact] = useState(false);
 
+  // Contact log refresh key — increment to force ContactLogTab to re-fetch
+  const [contactLogRefreshKey, setContactLogRefreshKey] = useState(0);
+
   // Expanded contact rows in log
   const [expandedContacts, setExpandedContacts] = useState<Set<number>>(new Set());
 
@@ -142,7 +147,7 @@ export default function CaseDetail() {
       await api.tasks.update(task.id, { status: newStatus });
       await fetchCase();
     } catch {
-      // silent — task update failure is rare and non-blocking
+      await fetchCase(); // revert UI to server state on failure
     }
   };
 
@@ -479,6 +484,7 @@ export default function CaseDetail() {
         {activeTab === 'contact-log' && (
           <ContactLogTab
             caseId={caseDetail.id}
+            refreshKey={contactLogRefreshKey}
             expandedContacts={expandedContacts}
             onToggleExpand={toggleExpandContact}
           />
@@ -524,7 +530,10 @@ export default function CaseDetail() {
         <LogContactModal
           caseId={caseDetail.id}
           onClose={() => setShowLogContact(false)}
-          onLogged={fetchCase}
+          onLogged={() => {
+            void fetchCase();
+            setContactLogRefreshKey(k => k + 1);
+          }}
         />
       )}
     </div>
@@ -535,11 +544,12 @@ export default function CaseDetail() {
 
 interface ContactLogTabProps {
   caseId: number;
+  refreshKey: number;  // increment to trigger re-fetch
   expandedContacts: Set<number>;
   onToggleExpand: (id: number) => void;
 }
 
-function ContactLogTab({ caseId, expandedContacts, onToggleExpand }: ContactLogTabProps) {
+function ContactLogTab({ caseId, refreshKey, expandedContacts, onToggleExpand }: ContactLogTabProps) {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -565,7 +575,7 @@ function ContactLogTab({ caseId, expandedContacts, onToggleExpand }: ContactLogT
         setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [caseId]);
+  }, [caseId, refreshKey]);
 
   if (loading) return <div className="px-5 py-4 text-sm text-gray-500">Loading contacts…</div>;
   if (error) return <div className="px-5 py-4 text-sm text-red-500">{error}</div>;

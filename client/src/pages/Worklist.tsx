@@ -17,7 +17,8 @@ function isOverdue(task: Task): boolean {
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString();
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString();
 }
 
 // ── Badge helpers ─────────────────────────────────────────────────────────────
