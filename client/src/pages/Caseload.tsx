@@ -258,7 +258,7 @@ export default function Caseload() {
           incompleteTasks={advancePending.incompleteTasks}
           isClose={advancePending.isClose}
           onConfirm={handleAdvanceConfirm}
-          onCancel={() => setAdvancePending(null)}
+          onCancel={() => { setAdvancePending(null); refetch(); }}
         />
       )}
     </div>
