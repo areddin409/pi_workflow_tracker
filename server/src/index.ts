@@ -10,6 +10,7 @@ import { contactScheduleRouter } from './routes/contact-schedule';
 import { contactActionItemsRouter } from './routes/contact-action-items';
 import { dashboardRouter } from './routes/dashboard';
 import { settingsRouter } from './routes/settings';
+import { communicationRouter } from './routes/communication';
 
 export function buildApp(db: Database.Database) {
   const app = express();
@@ -23,6 +24,7 @@ export function buildApp(db: Database.Database) {
   app.use('/api/contact-action-items', contactActionItemsRouter(db));
   app.use('/api/dashboard', dashboardRouter(db));
   app.use('/api/settings', settingsRouter(db));
+  app.use('/api/communication', communicationRouter(db));
   return app;
 }
 
