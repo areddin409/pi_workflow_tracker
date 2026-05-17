@@ -144,8 +144,9 @@ export default function Settings() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {local.map((row, i) => {
-                const isDirty = original ? !settingsEqual(row, original[i]) : false;
+              {local.filter(row => row.phase !== 'closed').map(row => {
+                const origRow = original ? original.find(o => o.phase === row.phase) : undefined;
+                const isDirty = origRow ? !settingsEqual(row, origRow) : false;
                 return (
                   <tr key={row.phase} className={isDirty ? 'bg-blue-50' : 'hover:bg-gray-50'}>
                     <td className="px-5 py-3 text-sm font-medium text-gray-900">
