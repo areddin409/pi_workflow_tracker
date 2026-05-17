@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCases } from '../hooks/useCases';
 import NewCaseModal from '../components/NewCaseModal';
 import PhaseAdvanceModal from '../components/PhaseAdvanceModal';
@@ -23,6 +24,13 @@ const PRIORITY_CLASSES: Record<Priority, string> = {
   low: 'bg-gray-100 text-gray-600',
 };
 
+const SENTIMENT_BADGE: Record<string, string> = {
+  positive: 'bg-green-100 text-green-700',
+  neutral: 'bg-yellow-100 text-yellow-700',
+  negative: 'bg-red-100 text-red-700',
+  at_risk: 'bg-red-100 text-red-700',
+};
+
 function priorityClass(p: Priority | undefined): string {
   if (!p) return 'bg-gray-100 text-gray-600';
   return PRIORITY_CLASSES[p] ?? 'bg-gray-100 text-gray-600';
@@ -39,6 +47,7 @@ interface AdvancePending {
 // ── Component ──────────────────────────────────────────────────────────────
 
 export default function Caseload() {
+  const navigate = useNavigate();
   const [showClosed, setShowClosed] = useState(false);
   const { data, loading, error, refetch, advance, remove } = useCases({ include_closed: showClosed });
 
@@ -130,6 +139,18 @@ export default function Caseload() {
           <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${priorityClass(c.case_badge_priority)}`}>
             {c.case_badge_priority}
           </span>
+        ) : (
+          <span className="text-xs text-gray-400">—</span>
+        )}
+      </td>
+      <td className="px-4 py-3">
+        {c.latest_sentiment ? (
+          <button
+            onClick={e => { e.stopPropagation(); navigate(`/communication?caseId=${c.id}`); }}
+            className={`text-xs px-2 py-0.5 rounded-full font-medium cursor-pointer ${SENTIMENT_BADGE[c.latest_sentiment] ?? 'bg-gray-100 text-gray-600'}`}
+          >
+            {c.latest_sentiment === 'at_risk' ? 'At Risk' : c.latest_sentiment.charAt(0).toUpperCase() + c.latest_sentiment.slice(1)}
+          </button>
         ) : (
           <span className="text-xs text-gray-400">—</span>
         )}
@@ -239,13 +260,14 @@ export default function Caseload() {
               <th className="px-4 py-3 text-left font-medium">Phase</th>
               <th className="px-4 py-3 text-left font-medium">Days in Phase</th>
               <th className="px-4 py-3 text-left font-medium">Priority</th>
+              <th className="px-4 py-3 text-left font-medium">Sentiment</th>
               <th className="px-4 py-3 text-left font-medium">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {active.length === 0 && closed.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-sm text-gray-400">
+                <td colSpan={7} className="px-4 py-6 text-center text-sm text-gray-400">
                   No cases found
                 </td>
               </tr>
