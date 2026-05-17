@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '../lib/api';
 import type { TaskTemplate, Phase, Priority } from '../types';
 
@@ -44,12 +44,6 @@ interface LocalRow {
 
 // ── Helper ─────────────────────────────────────────────────────────────────
 
-let newIdCounter = 0;
-function nextNewId(): NewId {
-  newIdCounter -= 1;
-  return `new-${newIdCounter}`;
-}
-
 function templateToRow(t: TaskTemplate): LocalRow {
   return {
     localId: t.id,
@@ -71,6 +65,12 @@ interface PhaseSectionProps {
 }
 
 function PhaseSection({ phase, original, onSaved }: PhaseSectionProps) {
+  const newIdCounterRef = useRef(0);
+  const nextNewId = (): NewId => {
+    newIdCounterRef.current -= 1;
+    return `new-${newIdCounterRef.current}`;
+  };
+
   const [open, setOpen] = useState(true);
   const [rows, setRows] = useState<LocalRow[]>(() => original.map(templateToRow));
   const [removed, setRemoved] = useState<Set<number>>(new Set());
@@ -139,10 +139,10 @@ function PhaseSection({ phase, original, onSaved }: PhaseSectionProps) {
       });
 
       // New tasks
-      const newTasks = rows.filter(r => r.isNew && !removed.has(r.id as number));
+      const newTasks = rows.filter(r => r.isNew);
 
       // Run all mutations in parallel
-      await Promise.all([
+      const results = await Promise.allSettled([
         ...changedExisting.map(r =>
           api.templates.update(r.id as number, {
             title: r.title,
@@ -161,13 +161,18 @@ function PhaseSection({ phase, original, onSaved }: PhaseSectionProps) {
         ...[...removed].map(id => api.templates.delete(id)),
       ]);
 
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
-      onSaved();
+      const failed = results.filter(r => r.status === 'rejected');
+      if (failed.length > 0) {
+        setError(`${failed.length} operation(s) failed. Refresh to see current state.`);
+      } else {
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Save failed');
     } finally {
       setSaving(false);
+      onSaved(); // always re-sync with server state
     }
   };
 
