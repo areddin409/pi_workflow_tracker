@@ -6,6 +6,7 @@ import CaseDetail from './pages/CaseDetail';
 import Worklist from './pages/Worklist';
 import Templates from './pages/Templates';
 import Settings from './pages/Settings';
+import Communication from './pages/Communication';
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
           <Route path="/caseload" element={<Caseload />} />
           <Route path="/cases/:id" element={<CaseDetail />} />
           <Route path="/worklist" element={<Worklist />} />
+          <Route path="/communication" element={<Communication />} />
           <Route path="/templates" element={<Templates />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
