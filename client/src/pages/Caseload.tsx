@@ -50,6 +50,8 @@ export default function Caseload() {
   // Modals
   const [showNewCase, setShowNewCase] = useState(false);
   const [advancePending, setAdvancePending] = useState<AdvancePending | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<Case | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Build attorney options from loaded data
   const attorneys = useMemo(() => {
@@ -88,7 +90,7 @@ export default function Caseload() {
         refetch();
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to advance phase');
+      setActionError(err instanceof Error ? err.message : 'Failed to advance phase');
     }
   };
 
@@ -99,13 +101,17 @@ export default function Caseload() {
     setAdvancePending(null);
   };
 
-  const handleDelete = async (c: Case) => {
-    if (!window.confirm(`Delete case for ${c.client_name}? This cannot be undone.`)) return;
+  const handleDelete = (c: Case) => setDeleteConfirm(c);
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirm) return;
     try {
-      await remove(c.id);
+      await remove(deleteConfirm.id);
       refetch();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete case');
+      setActionError(err instanceof Error ? err.message : 'Failed to delete case');
+    } finally {
+      setDeleteConfirm(null);
     }
   };
 
@@ -168,6 +174,14 @@ export default function Caseload() {
           + New Case
         </button>
       </div>
+
+      {/* Error banner */}
+      {actionError && (
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-2 rounded flex justify-between">
+          <span>{actionError}</span>
+          <button onClick={() => setActionError(null)} className="text-red-500 hover:text-red-700">×</button>
+        </div>
+      )}
 
       {/* Filters + toggle */}
       <div className="flex flex-wrap items-center gap-3">
@@ -260,6 +274,31 @@ export default function Caseload() {
           onConfirm={handleAdvanceConfirm}
           onCancel={() => { setAdvancePending(null); refetch(); }}
         />
+      )}
+
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">Delete Case</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Delete case for <strong>{deleteConfirm.client_name}</strong>? This cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="border border-gray-300 hover:bg-gray-50 px-3 py-1.5 rounded text-sm text-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                className="bg-red-600 text-white hover:bg-red-700 px-3 py-1.5 rounded text-sm"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

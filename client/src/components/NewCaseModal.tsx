@@ -27,9 +27,8 @@ export default function NewCaseModal({ onClose, onCreated }: Props) {
       onCreated();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create case');
-    } finally {
       setSaving(false);
+      setError(err instanceof Error ? err.message : 'Failed to create case');
     }
   };
 
