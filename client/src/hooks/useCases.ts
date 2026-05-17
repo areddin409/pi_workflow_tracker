@@ -21,5 +21,9 @@ export function useCases(params?: { include_closed?: boolean }) {
     api.cases.list(params).then(setData).catch((e: Error) => setError(e.message)).finally(() => setLoading(false));
   };
 
-  return { data, loading, error, refetch };
+  const advance = (id: number) => api.cases.advance(id);
+
+  const remove = (id: number) => api.cases.delete(id);
+
+  return { data, loading, error, refetch, advance, remove };
 }
