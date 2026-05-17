@@ -37,8 +37,7 @@ export function linkAnsweredContact(db: Database.Database, caseId: number, conta
   generateMonthlyFollowup(db, caseId, contactDate);
 }
 
-export function calculateContactRate(db: Database.Database): number {
-  const today = new Date().toISOString().slice(0, 10);
+export function calculateContactRate(db: Database.Database, today = new Date().toISOString().slice(0, 10)): number {
   const result = db.prepare(`
     SELECT
       COUNT(CASE WHEN completed_contact_id IS NOT NULL THEN 1 END) as completed,
@@ -47,6 +46,6 @@ export function calculateContactRate(db: Database.Database): number {
     JOIN cases c ON cs.case_id = c.id
     WHERE c.current_phase != 'closed' AND cs.due_date <= ?
   `).get(today) as { completed: number; total: number };
-  if (result.total === 0) return 100;
+  if (result.total === 0) return 0;
   return Math.round((result.completed / result.total) * 100);
 }

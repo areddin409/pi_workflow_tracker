@@ -226,7 +226,42 @@ describe('calculateContactRate', () => {
     db.close();
   });
 
-  it('test 8: returns 100 when there are no schedules due today or earlier', () => {
+  it('returns 0 when there are no schedules', () => {
+    const db = createTestDb();
+    const rate = calculateContactRate(db);
+    expect(rate).toBe(0);
+    db.close();
+  });
+
+  it('returns correct percentage when some schedules are completed', () => {
+    const db = createTestDb();
+    const caseResult = db.prepare(
+      "INSERT INTO cases (client_name, attorney, current_phase, date_assigned, created_at) VALUES ('A', 'B', 'treating', '2026-01-01', datetime('now'))"
+    ).run();
+    const caseId = caseResult.lastInsertRowid as number;
+
+    // One completed schedule
+    const contactResult = db.prepare(
+      "INSERT INTO contacts (case_id, contacted_at, contact_type, contact_status, client_sentiment, follow_up_necessary, created_at) VALUES (?, '2026-01-10', 'phone', 'answered', 'neutral', 0, datetime('now'))"
+    ).run(caseId);
+    const contactId = contactResult.lastInsertRowid as number;
+
+    db.prepare(
+      "INSERT INTO contact_schedule (case_id, schedule_type, due_date, completed_contact_id, completed_at) VALUES (?, 'initial_intro', '2026-01-02', ?, '2026-01-10')"
+    ).run(caseId, contactId);
+
+    // One open (incomplete) schedule
+    db.prepare(
+      "INSERT INTO contact_schedule (case_id, schedule_type, due_date) VALUES (?, 'monthly_followup', '2026-02-01')"
+    ).run(caseId);
+
+    const today = '2026-03-01'; // past both due dates
+    const rate = calculateContactRate(db, today);
+    expect(rate).toBe(50);
+    db.close();
+  });
+
+  it('test 8: returns 0 when there are no schedules due today or earlier', () => {
     const caseId = insertCase(db, 'treating');
 
     // Only a future schedule row — should not be counted
@@ -235,7 +270,7 @@ describe('calculateContactRate', () => {
     ).run(caseId);
 
     const rate = calculateContactRate(db);
-    expect(rate).toBe(100);
+    expect(rate).toBe(0);
   });
 
   it('test 9: returns correct percentage with mixed completed/open rows', () => {

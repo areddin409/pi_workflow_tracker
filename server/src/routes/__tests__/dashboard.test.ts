@@ -74,10 +74,10 @@ describe('Dashboard + Settings API', () => {
     expect(res.body).toHaveProperty('contactRate');
   });
 
-  it('GET /api/dashboard with no data returns zeros and contactRate=100', async () => {
+  it('GET /api/dashboard with no data returns zeros and contactRate=0', async () => {
     const res = await request(app).get('/api/dashboard').expect(200);
     expect(res.body.totalCases).toBe(0);
-    expect(res.body.contactRate).toBe(100);
+    expect(res.body.contactRate).toBe(0);
     expect(res.body.overdueTasksList).toEqual([]);
   });
 
