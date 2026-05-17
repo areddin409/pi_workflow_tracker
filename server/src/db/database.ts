@@ -12,8 +12,8 @@ function runMigrations(db: Database.Database): void {
   for (const sql of migrations) {
     try {
       db.exec(sql);
-    } catch {
-      // Column already exists — safe to ignore
+    } catch (err) {
+      if (!(err instanceof Error) || !err.message.includes('duplicate column name')) throw err;
     }
   }
 }
