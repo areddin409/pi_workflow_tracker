@@ -1,6 +1,7 @@
 import type {
   Case, CaseDetail, Task, TaskTemplate, Contact, ContactSchedule,
-  ContactActionItem, PhaseSettings, DashboardStats
+  ContactActionItem, PhaseSettings, DashboardStats,
+  CommunicationSummary, ContactAttemptType, ContactStatus, Sentiment, FollowUpType,
 } from '../types';
 
 const BASE = '/api';
@@ -67,5 +68,17 @@ export const api = {
     list: () => request<PhaseSettings[]>('/settings'),
     update: (phase: string, body: Partial<PhaseSettings>) =>
       request<PhaseSettings>(`/settings/${phase}`, { method: 'PUT', body: JSON.stringify(body) }),
+  },
+  communication: {
+    list: () => request<CommunicationSummary[]>('/communication'),
+    log: (caseId: number, body: {
+      contacted_at: string;
+      last_attempted?: string | null;
+      contact_attempt_type: ContactAttemptType;
+      contact_status: ContactStatus;
+      client_sentiment: Sentiment | 'at_risk';
+      follow_up_type: FollowUpType;
+      action_item?: string | null;
+    }) => request<Contact>(`/communication/${caseId}/log`, { method: 'POST', body: JSON.stringify(body) }),
   },
 };
